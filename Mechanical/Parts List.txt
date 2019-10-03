@@ -1,0 +1,54 @@
+support pieces
+wheel done
+omni wheel done
+stepper motor
+battery
+led matrix
+IR sensors
+glidepad
+
+support pieces
+
+
+
+drive over claw
+distance claw (horizontal)
+crane claw (vertical)
+
+12 V DC yes
+6 v DC yes
+IR Line Following skip
+IR Distance skip
+Ultrasonic skip
+Digital Compass skip
+Rotary encoder skip
+Motor Controller Shield skip
+H-Bridge Chip skip
+Arduino Uno yes
+Arduino Mega yes
+Arduino Shield skip
+Bluetooth HC-05/6 skip
+USB Cable done
+12V NiMH Battery Pack yes
+9V Battery Connector skip
+DC-DC Converter skip
+Omni Wheels yes
+Pololu-like wheels yes
+Ball Caster (Large) yes
+Ball Caster (Small) yes
+Acrylic Sheets skip
+Breadboard skip
+
+Limited Availability
+12V Stepper Motor
+Servo Motor (Mini)
+WifiESP8266
+Standoffs
+Jumper Wires
+2-4 Pin Connectors
+Battery Charger
+Bluetooth adapter
+heatshrink
+supont connectors
+mini dc motors
+fasteners
