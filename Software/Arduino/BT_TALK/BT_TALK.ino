@@ -3,10 +3,7 @@
 // Communicate with the BT module at 9600 (comms mode)
  
 #include <SoftwareSerial.h>
-SoftwareSerial BTserial(2, 3); // RX | TX
-// Connect the HC-05 TX to Arduino pin 2 RX. 
-// Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider.
-// 
+SoftwareSerial BTserial(50, 3); // RX | TX
  
 char c = ' ';
  
@@ -18,17 +15,21 @@ void setup()
  
     // HC-05 default serial speed for Command mode is 9600
     BTserial.begin(9600);  
+    BTserial.write("testing");
 }
  
 void loop()
-{
- 
+{   
+
     // Keep reading from HC-05 and send to Arduino Serial Monitor
     if (BTserial.available())
     {  
         c = BTserial.read();
         Serial.write(c);
     }
-//    digitalWrite(3, "hello");
+
+    BTserial.write("Ayy lmao.\n");
+//    delay(1000);
+
  
 }
