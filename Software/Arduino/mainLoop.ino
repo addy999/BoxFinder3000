@@ -20,14 +20,28 @@ void loop()
 // - readings = sensors.read()
 
 // - BT.send(readings)
-
 }
 
-float readBT() 
+float readBT(BTserial) 
 {
+    // Read BT Serial for motor commands
+
     // Assume motors need to do nothing at first
     float motor_commands[3] = {NULL, NULL, NULL};
-    
 
+    // Read BT
+    char reading = "";
+    if (BTserial.available())
+    {  
+        reading = BTserial.read();
+        Serial.write("BT Command RX: ");
+        Serial.write(reading);
+    }
+    if (reading[0] != '\0') {
+        // Parse string
+        motor_commands[0] = ;
+
+        
+    }
     return motor_commands
 }

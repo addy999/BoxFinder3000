@@ -28,6 +28,8 @@ void loop()
         Serial.write(c);
     }
 
+    delay(1000);
+    
     BTserial.write("Ayy lmao.\n");
 //    delay(1000);
 
