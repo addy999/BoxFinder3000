@@ -1,5 +1,6 @@
 #include <SoftwareSerial.h>
 #include <stdio.h>
+#include <string.h>
 SoftwareSerial BTserial(50, 3); // RX | TX
 
 // defines pins numbers
@@ -38,16 +39,19 @@ void setup()
  
     // HC-05 default serial speed for Command mode is 9600
     BTserial.begin(9600);  
-    BTserial.write("testing");
+    BTserial.write("Testing");
 }
  
 void loop()
 {   
+    // Serial.print("Loop starting\n");
+
     float distances[3];
 
     for(int i =0; i<3; i++)
     {
-    
+        // Serial.print(i);
+
         digitalWrite(triggers[i], LOW);
         delayMicroseconds(2);
         
@@ -65,26 +69,35 @@ void loop()
 
     }
 
-    // Keep reading from HC-05 and send to Arduino Serial Monitor
-    if (BTserial.available())
-    {  
-        c = BTserial.read();
-        Serial.write(c);
-    }
+    // // Keep reading from HC-05 and send to Arduino Serial Monitor
+    // if (BTserial.available())
+    // {  
+    //     c = BTserial.read();
+    //     Serial.write(c);
+    // }
 
-    char dist1[3], dist2[3], dist3[3];
+    // Serial.print("Let's split arrays\n");
+    char dist1[10], dist2[10], dist3[10];
+    dtostrf(distances[0], 6, 2, dist1);
+    dtostrf(distances[1], 6, 2, dist2);
+    dtostrf(distances[2], 6, 2, dist3);
 
-    dtostrf(distances[0], 3, 1, dist1);
-    dtostrf(distances[1], 3, 1, dist2);
-    dtostrf(distances[2], 3, 1, dist3);
+    // Serial.print(dist1);
+    // Serial.print(" ");
+    // Serial.print(dist2);
+    // Serial.print(" ");
+    // Serial.print(dist3);
+    // Serial.print("\n");
 
-    char concat_dist;
+    Serial.print("Let's concat\n");
+    char concat_dist[sizeof(dist1)+sizeof(dist2)+sizeof(dist3)+2] = "";
     strcat(concat_dist, dist1);
-    strcat(concat_dist, " ");
+    strcat(concat_dist, "-");
     strcat(concat_dist, dist2);
-    strcat(concat_dist, " ");
+    strcat(concat_dist, "-");
     strcat(concat_dist, dist3);
     
+    Serial.print("\n Concat dist: \n");
     Serial.print(concat_dist);
     Serial.print("\n");
 
