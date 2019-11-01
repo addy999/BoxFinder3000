@@ -49,7 +49,7 @@ const int sensors[6][2] = {
 };
 
 //  INitialize BT HC-06 Chip
-SoftwareSerial BTserial(50, 3); // RX | TX
+SoftwareSerial BTserial(50, 51); // RX | TX
 const int LOOP_DELAY = 1000; // ms
 
 void setup() 
@@ -89,17 +89,20 @@ void loop()
 {   
     if (BTserial.available())
     {   
+        // Read BT and move motor 
+
         String bt_reading;
         bt_reading = BTserial.readStringUntil("\n");
         Serial.print(bt_reading); // Preview sent command
 
-        // Split command into 3 floats
+        // Split command into 3 strings
         int first_comma_idx = bt_reading.indexOf(",");
         int last_comma_idx = bt_reading.lastIndexOf(",");
         String m1_s = bt_reading.substring(0, first_comma_idx);
         String m2_s = bt_reading.substring(first_comma_idx+1, last_comma_idx);
         String m3_s = bt_reading.substring(last_comma_idx+1, bt_reading.length()-1);
 
+        // Convert commands into 3 floats
         float m1_f = m1_s.toFloat();
         float m2_f = m2_s.toFloat();
         float m3_f = m3_s.toFloat();
@@ -107,50 +110,65 @@ void loop()
         moveMotors(motor_commands);
     }
     
-    // float distances[6];
-    // float readings[6] = readSensors(sensors, &distances);
-    // sendToBT(readings);
-
-    // BTserial.write("testing\n");
-
-    // Assume motors need to do nothing at first
-    // float motor_commands[3] = {NULL, NULL, NULL};
-    // parseMotorCommand(command, &motor_commands[0]);
-    // Serial.print(motor_commands[0]);
-    // Serial.print(" ");
-    // Serial.print(motor_commands[1]);
-    // Serial.print(" ");
-    // Serial.print(motor_commands[2]);
-    // Serial.print("\n");
-    delay(LOOP_DELAY);
-}
-
-void readSensors(int sensor_pins[6][2], float* distances)
-{
+    // Read sensors 
+    float distances[6];
     for(int i=0; i<6; i++)
     {
-        digitalWrite(sensor_pins[i][0], LOW);
+        digitalWrite(sensors[i][0], LOW);
         delayMicroseconds(2);
         
         // Sets the trigPin on HIGH state for 10 micro seconds
-        digitalWrite(sensor_pins[i][0], HIGH);
+        digitalWrite(sensors[i][0], HIGH);
         delayMicroseconds(10);
-        digitalWrite(sensor_pins[i][0], LOW);
+        digitalWrite(sensors[i][0], LOW);
         
         // Reads the echoPin, returns the sound wave travel time in microseconds
-        float duration = pulseIn(sensor_pins[i][1], HIGH);
+        float duration = pulseIn(sensors[i][1], HIGH);
         
         // Calculating the distance
         float distance = duration*0.034/2;
         distances[i] = distance;
     }
+
+    char test[sizeof(distances) * 11];
+    test = distToChar(distances);
+    Serial.println(test);
+    BTserial.write(test);
+    BTserial.write("\n");
+
+    // readSensors(sensors, &distances);
+    // sendToBT(BTserial, distances);
+
+    // BTserial.write("hi addy\n");
+    delay(LOOP_DELAY);
 }
 
-char distToChar(char distances[6])
+// void readSensors(int sensors[6][2], float* distances[6])
+// {
+//     for(int i=0; i<6; i++)
+//     {
+//         digitalWrite(sensors[i][0], LOW);
+//         delayMicroseconds(2);
+        
+//         // Sets the trigPin on HIGH state for 10 micro seconds
+//         digitalWrite(sensors[i][0], HIGH);
+//         delayMicroseconds(10);
+//         digitalWrite(sensors[i][0], LOW);
+        
+//         // Reads the echoPin, returns the sound wave travel time in microseconds
+//         float duration = pulseIn(sensors[i][1], HIGH);
+        
+//         // Calculating the distance
+//         float distance = duration*0.034/2;
+//         *distances[i] = distance;
+//     }
+// }
+
+char distToChar(float* distances)
 {
     char concat_dist[sizeof(distances) * 10 + sizeof(distances)] = "";
 
-    for(int i =0; i<sizeof(distances); i++)
+    for(int i=0; i<sizeof(distances); i++)
     {
         char char_dist[10];
         dtostrf(distances[i], 6, 2, char_dist);
@@ -161,7 +179,7 @@ char distToChar(char distances[6])
     return concat_dist;
 }
 
-void sendToBT(SoftwareSerial BTserial, char readings[6])
+void sendToBT(SoftwareSerial BTserial, float* readings)
 {
     // Convert sensor distance readings to char array 
     char char_array = distToChar(readings);
@@ -198,12 +216,4 @@ void moveMotors(float motor_commands[3])
             analogWrite(speed_pin, given_command);
         }
     }
-}
-
-void parseMotorCommand(char command, float* motor_commands) 
-{   
-    // Read BT
-    Serial.print(command);
-    Serial.print("\n");
-
 }
