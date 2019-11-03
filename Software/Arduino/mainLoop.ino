@@ -1,4 +1,3 @@
-#include <SoftwareSerial.h>
 #include <string.h>
 
 // Defines Motor pins
@@ -53,40 +52,40 @@ const int sensors[5][2] = {
 const int LOOP_DELAY = 200; // ms
 
 // CONSTANTS
-const float motor_a_coeff = 1.0;
+const float motor_a_coeff = 0.97;
 const float motor_b_coeff = 1.0;
 const float motor_c_coeff = 1.0;
-const float wall_threshold = 5.0; // cm
+const float wall_threshold = 8.0; // cm
 const float speed = 1.0;
 
 // Motor movements
 float command[3] = {0.0, 0.0, 0.0};
-const float moveFwd = {
-    255 * speed * motor_a_coeff, 
-    -255 * speed * motor_b_coeff, 
-    0.0
-};
-const float moveBwd = {
+const float moveFwd[3] = {
     -255 * speed * motor_a_coeff, 
     255 * speed * motor_b_coeff, 
     0.0
 };
-const float slideLeft = {
+const float moveBwd[3] = {
+    255 * speed * motor_a_coeff, 
+    -255 * speed * motor_b_coeff, 
+    0.0
+};
+const float slideLeft[3] = {
         125 * speed * motor_a_coeff, 
         125 * speed * motor_b_coeff, 
         -255 * speed * motor_c_coeff
 };
-const float slideRight = {
+const float slideRight[3] = {
         -125 * speed * motor_a_coeff, 
         -125 * speed * motor_b_coeff, 
         255 * speed * motor_c_coeff
 };
-const float turnLeft = {
+const float turnLeft[3] = {
     255 * speed * motor_a_coeff,
     255 * speed * motor_b_coeff,
     255 * speed * motor_c_coeff
 };
-const float turnRight = {
+const float turnRight[3] = {
     -255 * speed * motor_a_coeff,
     -255 * speed * motor_b_coeff,
     -255 * speed * motor_c_coeff
@@ -121,7 +120,10 @@ void setup()
     Serial.begin(9600);
     Serial.println("Arduino is ready");
 
-    BTserial.begin(9600); 
+    Serial1.begin(9600);
+    Serial1.print("BT READY");
+
+//    BTserial.begin(9600); 
     
 }
 
@@ -147,83 +149,72 @@ void loop()
         distances[i] = distance;
     }
 
-    const float front_sensor = distances[0]
-    const float left_sensor = distances[1]
-    const float right_sensor = distances[2]
-    const float front_left_sensor = distances[3]
-    const float front_right_sensor = distances[4]
-    const float rear_sensor = distances[5]
+    const float front_sensor = distances[1];
+    const float left_sensor = distances[3];
+    const float right_sensor = distances[4];
+    const float front_left_sensor = distances[0];
+    const float front_right_sensor = distances[2];
+    const float rear_sensor = distances[5];
+
+    Serial1.print("front ");
+    Serial1.print(front_sensor);
+    Serial1.print(" ");
+    Serial1.print("left ");
+    Serial1.print(left_sensor);
+    Serial1.print(" ");
+    Serial1.print("right ");
+    Serial1.print(right_sensor);
+    Serial1.print("\n");
 
     // Algorithm
-    
 
-
-
-    // ************** If BT works **************
-
-    // if (BTserial.available())
-    // {   
-    //     // Read BT and move motor 
-
-    //     String bt_reading;
-    //     bt_reading = BTserial.readStringUntil("\n");
-    //     Serial.print(bt_reading); // Preview sent command
-
-    //     // Split command into 3 strings
-    //     int first_comma_idx = bt_reading.indexOf(",");
-    //     int last_comma_idx = bt_reading.lastIndexOf(",");
-    //     String m1_s = bt_reading.substring(0, first_comma_idx);
-    //     String m2_s = bt_reading.substring(first_comma_idx+1, last_comma_idx);
-    //     String m3_s = bt_reading.substring(last_comma_idx+1, bt_reading.length()-1);
-
-    //     // Convert commands into 3 floats
-    //     float m1_f = m1_s.toFloat();
-    //     float m2_f = m2_s.toFloat();
-    //     float m3_f = m3_s.toFloat();
-    //     float motor_commands[3] = {m1_f, m2_f, m3_f};
-    //     moveMotors(motor_commands);
-
-    //     // Read sensors 
-    //     float distances[6];
-    //     for(int i=0; i<5; i++)
-    //     {
-    //         digitalWrite(sensors[i][0], LOW);
-    //         delayMicroseconds(2);
-            
-    //         // Sets the trigPin on HIGH state for 10 micro seconds
-    //         digitalWrite(sensors[i][0], HIGH);
-    //         delayMicroseconds(10);
-    //         digitalWrite(sensors[i][0], LOW);
-            
-    //         // Reads the echoPin, returns the sound wave travel time in microseconds
-    //         float duration = pulseIn(sensors[i][1], HIGH);
-            
-    //         // Calculating the distance
-    //         float distance = duration*0.034/2;
-
-    //         // Convert dist to char and sent to BT
-    //         char char_dist[10];
-    //         dtostrf(distance, 6, 2, char_dist);
-    //         BTserial.print(char_dist);
-    //         BTserial.print("-");
-    //     }
-    //     BTserial.print("\n");
-    // }
-}
-
-char distToChar(float* distances)
-{
-    char concat_dist[sizeof(distances) * 10 + sizeof(distances)] = "";
-
-    for(int i=0; i<sizeof(distances); i++)
+    // check if wall in front
+    if (front_sensor < wall_threshold)
     {
-        char char_dist[10];
-        dtostrf(distances[i], 6, 2, char_dist);
-        strcat(concat_dist, char_dist);
-        strcat(concat_dist, "-");
+//      Serial1.println("reverse reverse");
+//      moveMotors(moveBwd);
+//      delay(200);
+      
+      if (left_sensor < right_sensor && left_sensor < wall_threshold * 1.5)
+      {
+        Serial1.println("turnRight");
+        moveMotors(turnRight);
+        delay(4700/3);
+      }
+      else if (right_sensor < left_sensor && right_sensor < wall_threshold * 1.5)
+      {
+        Serial1.println("turnLeft");
+        moveMotors(turnLeft);
+        delay(4700/3);
+      }
+      else
+      {
+        Serial1.println("180");
+        moveMotors(turnLeft);
+        delay(4700 * 2 / 3);
+      }
     }
 
-    return concat_dist;
+    // stay between walls
+    else if (left_sensor < right_sensor && left_sensor < wall_threshold / 2)
+    {
+      Serial1.println("slide right");
+      moveMotors(slideRight);
+    }
+    else if (right_sensor < left_sensor && right_sensor < wall_threshold / 2)
+    {
+      Serial1.println("sldie left");
+      moveMotors(slideLeft);  
+    }
+    
+    else
+    {
+      Serial1.println("move fwd");
+      moveMotors(moveFwd);
+    }
+
+    delay(50);
+
 }
 
 void moveMotors(float motor_commands[3])
