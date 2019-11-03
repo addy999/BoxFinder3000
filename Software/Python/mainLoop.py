@@ -27,20 +27,35 @@ while True:
     
     ############ Algorithm ############
     
-    # 1 - Center btw walls
-    if left_sensor < right_sensor:
+    # 1 - Center rotationally walls
+    if front_left_sensor < wall_threshold and front_sensor < wall_threshold * 1.5 and left_sensor < wall_threshold * 1.5:
+        # rotate right
+        turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=-1)
+    
+    elif front_right_sensor < wall_threshold and front_sensor < wall_threshold * 1.5 and right_sensor < wall_threshold * 1.5:
+        # rotate left
+        turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=1)
+    
+    # 2 - Center btw walls
+    elif left_sensor < right_sensor:
         command = slideRight(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = 1.0)
-    if right_sensor < left_sensor:
+    elif right_sensor < left_sensor:
         command = slideLeft(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = 1.0)
 
-    # 2 - Check if wall in front
-    if front_sensor < wall_threshold:
+    # 3 - Check if wall in front
+    elif front_sensor < wall_threshold:
         
         if left_sensor < right_sensor:
-            command = turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=1.0)
+            # rotate left
+            command = turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=1)
 
-        # if right < left
-        #     rotate CCW (L back, R fwd, B right)
+        elif right_sensor < left_sensor:
+            # rotate right
+            command = turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=-1)
 
-        # else
-        #     full 180 turn and go straight
+        else:
+            # Full 180
+            command = turn(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=1.0, direction=1)
+    
+    else:
+        command = moveStraight(motor_a_coeff, motor_b_coeff, speed = 1.0, direction = 1)
