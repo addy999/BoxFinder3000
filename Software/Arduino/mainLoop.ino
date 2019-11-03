@@ -39,18 +39,18 @@ const int echoPin_5 = 31;
 const int trigPin_6 = 32;
 const int echoPin_6 = 33;
 
-const int sensors[6][2] = {
+const int sensors[5][2] = {
     {trigPin_1, echoPin_1},
     {trigPin_2, echoPin_2},
     {trigPin_3, echoPin_3},
     {trigPin_4, echoPin_4},
     {trigPin_5, echoPin_5},
-    {trigPin_6, echoPin_6},
+    // {trigPin_6, echoPin_6},
 };
 
 //  INitialize BT HC-06 Chip
 SoftwareSerial BTserial(50, 51); // RX | TX
-const int LOOP_DELAY = 1000; // ms
+const int LOOP_DELAY = 200; // ms
 
 void setup() 
 {
@@ -87,6 +87,8 @@ void setup()
 
 void loop()
 {   
+    // delay(LOOP_DELAY * 5);
+
     if (BTserial.available())
     {   
         // Read BT and move motor 
@@ -108,61 +110,39 @@ void loop()
         float m3_f = m3_s.toFloat();
         float motor_commands[3] = {m1_f, m2_f, m3_f};
         moveMotors(motor_commands);
+
+        // Read sensors 
+        float distances[6];
+        for(int i=0; i<5; i++)
+        {
+            digitalWrite(sensors[i][0], LOW);
+            delayMicroseconds(2);
+            
+            // Sets the trigPin on HIGH state for 10 micro seconds
+            digitalWrite(sensors[i][0], HIGH);
+            delayMicroseconds(10);
+            digitalWrite(sensors[i][0], LOW);
+            
+            // Reads the echoPin, returns the sound wave travel time in microseconds
+            float duration = pulseIn(sensors[i][1], HIGH);
+            
+            // Calculating the distance
+            float distance = duration*0.034/2;
+
+            // Convert dist to char and sent to BT
+            char char_dist[10];
+            dtostrf(distance, 6, 2, char_dist);
+            BTserial.print(char_dist);
+            BTserial.print("-");
+        }
+        BTserial.print("\n");
     }
-    
-    // Read sensors 
-    float distances[6];
-    for(int i=0; i<6; i++)
-    {
-        digitalWrite(sensors[i][0], LOW);
-        delayMicroseconds(2);
-        
-        // Sets the trigPin on HIGH state for 10 micro seconds
-        digitalWrite(sensors[i][0], HIGH);
-        delayMicroseconds(10);
-        digitalWrite(sensors[i][0], LOW);
-        
-        // Reads the echoPin, returns the sound wave travel time in microseconds
-        float duration = pulseIn(sensors[i][1], HIGH);
-        
-        // Calculating the distance
-        float distance = duration*0.034/2;
-        distances[i] = distance;
-    }
 
-    char test[sizeof(distances) * 11];
-    test = distToChar(distances);
-    Serial.println(test);
-    BTserial.write(test);
-    BTserial.write("\n");
+    // delay(LOOP_DELAY * 5);
 
-    // readSensors(sensors, &distances);
-    // sendToBT(BTserial, distances);
-
-    // BTserial.write("hi addy\n");
-    delay(LOOP_DELAY);
+    // float motor_commands[3] = {255, 255, 255};
+    // moveMotors(motor_commands);
 }
-
-// void readSensors(int sensors[6][2], float* distances[6])
-// {
-//     for(int i=0; i<6; i++)
-//     {
-//         digitalWrite(sensors[i][0], LOW);
-//         delayMicroseconds(2);
-        
-//         // Sets the trigPin on HIGH state for 10 micro seconds
-//         digitalWrite(sensors[i][0], HIGH);
-//         delayMicroseconds(10);
-//         digitalWrite(sensors[i][0], LOW);
-        
-//         // Reads the echoPin, returns the sound wave travel time in microseconds
-//         float duration = pulseIn(sensors[i][1], HIGH);
-        
-//         // Calculating the distance
-//         float distance = duration*0.034/2;
-//         *distances[i] = distance;
-//     }
-// }
 
 char distToChar(float* distances)
 {
@@ -179,17 +159,6 @@ char distToChar(float* distances)
     return concat_dist;
 }
 
-void sendToBT(SoftwareSerial BTserial, float* readings)
-{
-    // Convert sensor distance readings to char array 
-    char char_array = distToChar(readings);
-
-    // Send to BT
-    BTserial.write("Incoming readings: ");
-    BTserial.write(char_array);
-    BTserial.write("\n");
-}
-
 void moveMotors(float motor_commands[3])
 {
     for(int i=0; i<3; i++)
@@ -202,6 +171,8 @@ void moveMotors(float motor_commands[3])
         if (given_command == 0) 
         {
             digitalWrite(brake_pin, HIGH);
+            // delay(100);
+            // digitalWrite(brake_pin, LOW);
         }
         else if (given_command < 0)
         {
