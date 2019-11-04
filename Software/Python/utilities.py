@@ -19,7 +19,7 @@ def sendRxCommand(ser, motor_command, sleep_req_ms=0.0, offset_s = 0.1):
     
     # Sending
     str_command = commandToStrBytes(motor_command, '-' + str(sleep_req_ms))
-    print('Sending', str_command)
+    # print('Sending', str_command)
     ser.write(str_command)
     
     sleep(sleep_req_ms / 1000 + offset_s) # plus offset to allow comms to come in
@@ -35,3 +35,19 @@ def sendRxCommand(ser, motor_command, sleep_req_ms=0.0, offset_s = 0.1):
         return a
     else:
         return None
+
+def allowReadingsDiff(current, last, multiple = 2):
+    
+    i =0 
+    
+    for c,l in zip(current, last):
+        if i in [0,2]: pass
+        else:
+            if l > 0:
+                if c/l >= multiple:
+                    return False
+            if c > 0:
+                if l/c >= multiple:
+                    return False
+            
+    return True
