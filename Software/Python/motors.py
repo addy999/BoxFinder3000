@@ -8,7 +8,7 @@ def moveFwd(motor_a_coeff=1.0, motor_b_coeff=1.0, speed = 1.0):
     
 def moveBwd(motor_a_coeff=1.0, motor_b_coeff=1.0, speed = 1.0):
     ''' straight by default'''
-    return moveFwd(motor_a_coeff, motor_b_coeff, speed) * -1
+    return [i*-1 for i in moveFwd(motor_a_coeff, motor_b_coeff, speed)]
 
 def slideLeft(motor_a_coeff=1.0, motor_b_coeff=1.0, motor_c_coeff=1.0, speed = 1.0):
     ''' a,b,c '''
