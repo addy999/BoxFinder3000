@@ -8,9 +8,9 @@ from time import sleep
 ser = startBT('COM6')
 
 #  Constants
-motor_a_coeff = 0.95
+motor_a_coeff = 0.955
 motor_b_coeff = 1.0
-motor_c_coeff = 0.7
+motor_c_coeff = 0.725
 
 front_threshold = 12 # cm
 side_threshold = 4 # cm
@@ -24,13 +24,12 @@ straighten_speed = 45/120
 slide_speed = 0.6
 
 base_turn_time_ms = 4200/2 * 2/3
-ninty_deg_turn_time_ms = 1.85 * base_turn_time_ms/3 
-pi_rad_turn_time_ms = 1.8 * base_turn_time_ms*2/3
+ninty_deg_turn_time_ms = 1.65 * base_turn_time_ms/3 
+# pi_rad_turn_time_ms = 1.8 * base_turn_time_ms*2/3
 slide_time_ms = 0.75 * ninty_deg_turn_time_ms / 3
-reverse_time_ms = 200
+reverse_time_ms = 100
 straighten_time = 0.25 * 4200/2 * 2/3
-
-const_loop_delay_ms = 200 # ms
+forward_time_ms = 150 # ms
 
 # Initialize
 command = [0, 0, 0]
@@ -45,6 +44,8 @@ skip_loop = False
 while not keyboard.is_pressed('esc'):    
     
     if sensor_readings and not skip_loop:
+        
+        sensor_readings[1] += 1.5
     
         # Zero out sleep at beginning
         sleep_req_ms = 0.0 # ms
@@ -60,8 +61,24 @@ while not keyboard.is_pressed('esc'):
             # rear_sensor = sensor_readings[5]
         )        
         
+        # 3 - Center btw walls
+        if sensor_map['left_sensor'] < sensor_map['right_sensor'] and (sensor_map['left_sensor'] < side_threshold or sensor_map['front_left_sensor'] < diagonal_threshhold):
+            print('> slide right')
+            command = slideRight(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = slide_speed)
+            sleep_req_ms = slide_time_ms
+        elif sensor_map['right_sensor'] < sensor_map['left_sensor'] and (sensor_map['right_sensor'] < side_threshold or sensor_map['front_right_sensor'] < diagonal_threshhold):
+            print('> slide left')
+            command = slideLeft(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = slide_speed)
+            sleep_req_ms = slide_time_ms
+        
         # 1 - Check if wall in front
-        if sensor_map['front_sensor'] < front_threshold:
+        elif sensor_map['front_sensor'] < front_threshold * 0.35:
+            
+            print('> Reverse')
+            command = moveBwd(motor_a_coeff, motor_b_coeff, speed)
+            sleep_req_ms = reverse_time_ms
+            
+        elif sensor_map['front_sensor'] < front_threshold:
                     
             # 2b - Check which side to rotate
             if sensor_map['left_sensor'] < sensor_map['right_sensor']:
@@ -82,17 +99,7 @@ while not keyboard.is_pressed('esc'):
             #     print('> 180')
             #     command = turnRight(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed=turn_speed)
             #     sleep_req_ms = pi_rad_turn_time_ms
-                 
-        # 3 - Center btw walls
-        elif sensor_map['left_sensor'] < sensor_map['right_sensor'] and (sensor_map['left_sensor'] < side_threshold or sensor_map['front_left_sensor'] < diagonal_threshhold):
-            print('> slide right')
-            command = slideRight(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = slide_speed)
-            sleep_req_ms = slide_time_ms
-        elif sensor_map['right_sensor'] < sensor_map['left_sensor'] and (sensor_map['right_sensor'] < side_threshold or sensor_map['front_right_sensor'] < diagonal_threshhold):
-            print('> slide left')
-            command = slideLeft(motor_a_coeff, motor_b_coeff, motor_c_coeff, speed = slide_speed)
-            sleep_req_ms = slide_time_ms
-        
+       
         # 2 - Straighten out
         # elif sensor_map['front_left_sensor'] < diagonal_threshhold:
         #     print('> Rotate right')
@@ -109,7 +116,7 @@ while not keyboard.is_pressed('esc'):
         else:
             print('> forward')
             command = moveFwd(motor_a_coeff, motor_b_coeff, speed = speed)
-            sleep_req_ms = const_loop_delay_ms
+            sleep_req_ms = forward_time_ms
         
         # 5 - Send commands
         # print('Command', command)
@@ -120,13 +127,14 @@ while not keyboard.is_pressed('esc'):
         if last_readings[1] > 0 and sensor_readings[1] > 0:
             if last_readings[1] / sensor_readings[1] >= multiple_allowed:
                 skip_loop = True
-        # sleep(const_loop_delay_ms / 1000)
+        # sleep(forward_time_ms / 1000)
     else:
         if skip_loop: print('SKIPPING LOOP')
         print('******************** Give last command ********************')
         print('Read', sensor_map.items())        
-        sensor_readings = sendRxCommand(ser, [0.0, 0.0, 0.0], sleep_req_ms = sleep_req_ms, offset_s = 0.0)
+        sensor_readings = sendRxCommand(ser, [i*0.1 for i in command], sleep_req_ms = sleep_req_ms, offset_s = 0.0)
         last_readings = sensor_readings
         skip_loop = False
+        
 # Break and end
 sendRxCommand(ser, [0, 0, 0])
