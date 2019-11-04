@@ -85,7 +85,6 @@ void setup()
 
 void loop()
 {   
-
     if (Serial1.available())
     {   
         // Read BT and move motor 
@@ -136,7 +135,7 @@ void loop()
             
             // Calculating the distance
             float distance = duration*0.034/2;
-
+    
             // Convert dist to char and sent to BT
             char char_dist[10];
             dtostrf(distance, 6, 2, char_dist);
@@ -145,7 +144,7 @@ void loop()
         }
         Serial1.print("\n");
     }
-
+    
     float commands[3] = {0.0, 0.0, 0.0};
     moveMotors(commands);
     delay(50);
