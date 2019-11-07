@@ -1,11 +1,16 @@
 from utilities import *
 from motors import *
+# from mainLoop import *
 
-ser = startBT('COM3')
+ser = startBT('COM6')
+sendRxCommand(ser, [0,0,0])
 
-print('Always forward')
 while True:
-    sendRxCommand(ser, [255,255,255], True)
+    command = turnRight()    
+    sendRxCommand(ser, command)
+    
+    # sendRxCommand(ser, [255,255,255])
+    # sendRxCommand(ser, turnRight(), 300)
 
 # print('FORWARD')
 # for i in range(10):
