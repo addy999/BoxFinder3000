@@ -14,8 +14,8 @@ def getSensors(direction = (0,1)):
             'left' : [(-1,0), (-1, 0)],
             'right' : [(1,0), (1, 0)],
             'back' : [(0,-1), (0, -1)],
-            'front-left' : [(-1,1), (-1, 1)],
-            'front-right' : [(1,1), (1, 1)],
+            'front-left' : [(-1,2), (-1, 1)],
+            'front-right' : [(1,2), (1, 1)],
         }
     
     return sensors
@@ -86,8 +86,12 @@ def createSensorMatrix(maze, sensors, robot_center = (6,6), robot_radius = (9.4 
         for row in range(sensor_distances.shape[1]):
             
             block = (col, row)
-            block_distances = createSensorMatrixBlock(maze, sensors, block, robot_center, robot_radius)        
-            sensor_distances[block] = block_distances
+            block_distances = createSensorMatrixBlock(maze, sensors, block, robot_center, robot_radius)    
+            
+            if list(block_distances.values()).count(0) == 6:
+                sensor_distances[block] = None
+            else:
+                sensor_distances[block] = block_distances
             
     return sensor_distances
 
@@ -104,11 +108,7 @@ def createSensorMatrixBlock(maze, sensors, block, robot_center = (6,6), robot_ra
         sensor_pos = [robot_center_pos[i] + int(robot_radius) * sensor_offset[i] for i in range(2)]
         
         # print(sensor, sensor_pos)
-        try:
-            dist_to_wall = findDist(maze, sensor_pos, sensor_direction)
-        except:
-            print("Block", block, "Robot center", robot_center_pos, "Sensor @", sensor_pos)
-        
+        dist_to_wall = findDist(maze, sensor_pos, sensor_direction)        
         distances[sensor] = dist_to_wall
     
     return distances
@@ -149,4 +149,4 @@ def findMatch(sensor_distances, sensor_data):
                     min_dist_found = diff
                     min_pos = (row, col)
                 
-    return min_dist_found, min_pos
+    return min_pos
