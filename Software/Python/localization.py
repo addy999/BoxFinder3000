@@ -2,17 +2,17 @@ import numpy as np
 
 ################# Create matrix #################
 
-def fillInBlocks(matrix, step_size_in, row_min, row_max, col_min, col_max):
+def fillInBlocks(matrix, step_size_in, col_min, col_max, row_min, row_max):
     ''' For a block bottom left and top right coordinates in inches'''
-    for row in range(int(row_min/step_size_in), np.clip(int(row_max/step_size_in+1), 0, matrix.shape[0])):
-        for col in range(int(col_min/step_size_in), np.clip(int(col_max/step_size_in+1), 0, matrix.shape[1])):
+    for row in range(int(col_min/step_size_in), np.clip(int(col_max/step_size_in+1), 0, matrix.shape[0])):
+        for col in range(int(row_min/step_size_in), np.clip(int(row_max/step_size_in+1), 0, matrix.shape[1])):
             matrix[row+1][col+1] = 1
     
     return matrix
 
 def createMatrix(step_size_in = 3):
     spacing = 12 / step_size_in
-    matrix = np.zeros((int(4 * spacing) + 2, int(8 * spacing) + 2))
+    matrix = np.zeros((int(8 * spacing) + 2, int(4 * spacing) + 2))
 
     rows, cols = matrix.shape
     
@@ -25,14 +25,16 @@ def createMatrix(step_size_in = 3):
         matrix[row][0] = 1
         matrix[row][-1] = 1
         
-    matrix = fillInBlocks(matrix, step_size_in, 2*12, 4*12, 12, 24)
-    matrix = fillInBlocks(matrix, step_size_in, 0, 12, 12, 24)
-    matrix = fillInBlocks(matrix, step_size_in, 0, 12, 36, 48)
-    matrix = fillInBlocks(matrix, step_size_in, 24, 36, 36, 60)
-    matrix = fillInBlocks(matrix, step_size_in, 12, 24, 60, 12*6)
-    matrix = fillInBlocks(matrix, step_size_in, 24, 36, 12*6, 12*7)
+    matrix = fillInBlocks(matrix, step_size_in, 12, 24, 2*12, 4*12)
+    matrix = fillInBlocks(matrix, step_size_in, 12, 24, 0, 12)
+    matrix = fillInBlocks(matrix, step_size_in, 36, 48, 0, 12)
+    matrix = fillInBlocks(matrix, step_size_in, 36, 60, 24, 36)
+    matrix = fillInBlocks(matrix, step_size_in, 60, 12*6, 12, 24)
+    matrix = fillInBlocks(matrix, step_size_in, 12*6, 12*7, 24, 36)
     
-    return matrix.transpose(), createSensorMatrix(matrix, step_size_in).transpose()
+    # print(matrix[:,1])
+    
+    return createSensorMatrix(matrix, step_size_in)
 
 def findDist(matrix, step_size_in, spot, direction):
     x_dir = direction[0]
@@ -47,7 +49,7 @@ def findDist(matrix, step_size_in, spot, direction):
         col += x_dir
         traversed += hyp
         
-        if matrix[row, col] == 1:
+        if matrix[col, row] == 1:
             wall_found = True
             
     return traversed
@@ -66,16 +68,23 @@ def createSensorMatrix(matrix, step_size_in):
     sensor_distances = np.ndarray((shape[0]-2, shape[1]-2), dtype=np.object)
     sensor_distances.shape
 
-    for row in range(sensor_distances.shape[0]):
-        for col in range(sensor_distances.shape[1]):
-            if matrix[row-1,col-1] == 1:
-                pass
-            distances = dict(zip(sensor_dir.keys(), np.zeros(6)))
-            for direction, dir_tuple in sensor_dir.items():
-                dist = findDist(matrix, step_size_in, (col, row), dir_tuple)
-                distances[direction] = dist
+    for col in range(sensor_distances.shape[0]):
+        for row in range(sensor_distances.shape[1]):
+            col_sub, row_sub = 1,1
+            if row == 0:
+                row_sub = 0
+            if col == 0:
+                col_sub = 0
                 
-            sensor_distances[row, col] = distances
+            if matrix[col-col_sub,row-row_sub] == 1:
+                sensor_distances[col, row] = None
+            else:
+                distances = dict(zip(sensor_dir.keys(), np.zeros(6)))
+                for direction, dir_tuple in sensor_dir.items():
+                    dist = findDist(matrix, step_size_in, (col, row), dir_tuple)
+                    distances[direction] = dist
+                    
+                sensor_distances[col, row] = distances
             
     return sensor_distances
 
@@ -106,12 +115,13 @@ def findMatch(sensor_distances, sensor_data):
     for row in range(sensor_distances.shape[0]):
         for col in range(sensor_distances.shape[1]):
             test_data = sensor_distances[row, col]
-            diff_vector = []
-            for sensor_dist, test_dist in zip(sensor_data.values(), test_data.values()):
-                diff_vector.append(sensor_dist - test_dist)   
-            diff = abs(np.linalg.norm(diff_vector))         
-            if diff < min_dist_found:
-                min_dist_found = diff
-                min_pos = (row, col)
+            if test_data:
+                diff_vector = []
+                for sensor_dist, test_dist in zip(sensor_data.values(), test_data.values()):
+                    diff_vector.append(sensor_dist - test_dist)   
+                diff = abs(np.linalg.norm(diff_vector))         
+                if diff < min_dist_found:
+                    min_dist_found = diff
+                    min_pos = (row, col)
                 
     return min_dist_found, min_pos
