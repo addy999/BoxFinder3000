@@ -1,92 +1,117 @@
 import numpy as np
+import copy
 
-################# Create matrix #################
+################# Create maze #################
 
-def fillInBlocks(matrix, step_size_in, col_min, col_max, row_min, row_max):
-    ''' For a block bottom left and top right coordinates in inches'''
-    for row in range(int(col_min/step_size_in), np.clip(int(col_max/step_size_in+1), 0, matrix.shape[0])):
-        for col in range(int(row_min/step_size_in), np.clip(int(row_max/step_size_in+1), 0, matrix.shape[1])):
-            matrix[row+1][col+1] = 1
+maze_step_size = 1
+
+def getSensors(direction = (0,1)):
     
-    return matrix
+    if direction == (0,1):
+        # dir : [direction, offset]
+        sensors = {
+            'front' : [(0,1), (0, 1)],
+            'left' : [(-1,0), (-1, 0)],
+            'right' : [(1,0), (1, 0)],
+            'back' : [(0,-1), (0, -1)],
+            'front-left' : [(-1,1), (-1, 1)],
+            'front-right' : [(1,1), (1, 1)],
+        }
+    
+    return sensors
 
-def createMatrix(step_size_in = 3):
-    spacing = 12 / step_size_in
-    matrix = np.zeros((int(8 * spacing) + 2, int(4 * spacing) + 2))
+def fillInBlocks(maze, col_min, col_max, row_min, row_max):
+    ''' For a block bottom left and top right coordinates in inches'''
+    for row in range(int(col_min/maze_step_size), np.clip(int(col_max/maze_step_size+1), 0, maze.shape[0])):
+        for col in range(int(row_min/maze_step_size), np.clip(int(row_max/maze_step_size+1), 0, maze.shape[1])):
+            maze[row+1][col+1] = 1
+    
+    return maze
 
-    rows, cols = matrix.shape
+def createMaze():
+    
+    spacing = 12 / maze_step_size
+    maze = np.zeros((int(8 * spacing) + 2, int(4 * spacing) + 2))
+
+    rows, cols = maze.shape
     
     ## top and bottom
     for i in range(cols):
-        matrix[0][i] = 1
-        matrix[-1][i] = 1    
+        maze[0][i] = 1
+        maze[-1][i] = 1    
     ## left and right sides
     for row in range(rows):
-        matrix[row][0] = 1
-        matrix[row][-1] = 1
+        maze[row][0] = 1
+        maze[row][-1] = 1
         
-    matrix = fillInBlocks(matrix, step_size_in, 12, 24, 2*12, 4*12)
-    matrix = fillInBlocks(matrix, step_size_in, 12, 24, 0, 12)
-    matrix = fillInBlocks(matrix, step_size_in, 36, 48, 0, 12)
-    matrix = fillInBlocks(matrix, step_size_in, 36, 60, 24, 36)
-    matrix = fillInBlocks(matrix, step_size_in, 60, 12*6, 12, 24)
-    matrix = fillInBlocks(matrix, step_size_in, 12*6, 12*7, 24, 36)
+    maze = fillInBlocks(maze, 12, 24, 2*12, 4*12)
+    maze = fillInBlocks(maze, 12, 24, 0, 12)
+    maze = fillInBlocks(maze, 36, 48, 0, 12)
+    maze = fillInBlocks(maze, 36, 60, 24, 36)
+    maze = fillInBlocks(maze, 60, 12*6, 12, 24)
+    maze = fillInBlocks(maze, 12*6, 12*7, 24, 36)
     
-    # print(matrix[:,1])
+    # print(maze[:,1])
     
-    return createSensorMatrix(matrix, step_size_in)
+    return maze
 
-def findDist(matrix, step_size_in, spot, direction):
+def findDist(maze, spot, direction):
     x_dir = direction[0]
     y_dir = direction[1]
-    hyp = step_size_in * (x_dir**2 + y_dir**2) ** 0.5
+    hyp = maze_step_size * (x_dir**2 + y_dir**2) ** 0.5
     wall_found = False
     traversed = 0
     col, row = int(spot[0])+1, int(spot[1])+1
     
+    # Check if actally ON a wall
+    if maze[col, row] == 1:
+        wall_found = True
+    
+    # If not, find a wall in the direction
     while not wall_found:
         row += y_dir
         col += x_dir
         traversed += hyp
         
-        if matrix[col, row] == 1:
+        if maze[col, row] == 1:
             wall_found = True
             
     return traversed
 
-def createSensorMatrix(matrix, step_size_in):
-    sensor_dir = {
-        'front' : (0,1),
-        'left' : (-1,0),
-        'right' : (1,0),
-        'back' : (0,-1),
-        'front-left' : (-1,1),
-        'front-right' : (1,1),
-    }
-
-    shape = matrix.shape
-    sensor_distances = np.ndarray((shape[0]-2, shape[1]-2), dtype=np.object)
-    sensor_distances.shape
+def createSensorMatrix(maze, sensors, robot_center = (6,6), robot_radius = (9.4 + 9.95) / 2 / 2):
+    
+    sensor_distances = np.ndarray((8, 4), dtype=np.object)
 
     for col in range(sensor_distances.shape[0]):
         for row in range(sensor_distances.shape[1]):
-            col_sub, row_sub = 1,1
-            if row == 0:
-                row_sub = 0
-            if col == 0:
-                col_sub = 0
-                
-            if matrix[col-col_sub,row-row_sub] == 1:
-                sensor_distances[col, row] = None
-            else:
-                distances = dict(zip(sensor_dir.keys(), np.zeros(6)))
-                for direction, dir_tuple in sensor_dir.items():
-                    dist = findDist(matrix, step_size_in, (col, row), dir_tuple)
-                    distances[direction] = dist
-                    
-                sensor_distances[col, row] = distances
+            
+            block = (col, row)
+            block_distances = createSensorMatrixBlock(maze, sensors, block, robot_center, robot_radius)        
+            sensor_distances[block] = block_distances
             
     return sensor_distances
+
+def createSensorMatrixBlock(maze, sensors, block, robot_center = (6,6), robot_radius = (9.4 + 9.95) / 2 / 2):
+    
+    # print("Radius", robot_radius)
+    robot_center_pos = (12 * block[0] + robot_center[0], 12 * block[1] + robot_center[1])
+    distances = copy.deepcopy(sensors)
+    
+    for sensor in sensors:
+        sensor_direction = sensors[sensor][0]
+        sensor_offset = sensors[sensor][1]
+        
+        sensor_pos = [robot_center_pos[i] + int(robot_radius) * sensor_offset[i] for i in range(2)]
+        
+        # print(sensor, sensor_pos)
+        try:
+            dist_to_wall = findDist(maze, sensor_pos, sensor_direction)
+        except:
+            print("Block", block, "Robot center", robot_center_pos, "Sensor @", sensor_pos)
+        
+        distances[sensor] = dist_to_wall
+    
+    return distances
 
 ################# Comparison functions #################
 
