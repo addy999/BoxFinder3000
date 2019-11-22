@@ -7,8 +7,9 @@ maze_step_size = 1
 
 def getSensors(direction = (0,1)):
     
+    # dir : [direction, offset]
+    
     if direction == (0,1):
-        # dir : [direction, offset]
         sensors = {
             'front' : [(0,1), (0, 1)],
             'left' : [(-1,0), (-1, 0)],
@@ -16,6 +17,34 @@ def getSensors(direction = (0,1)):
             'back' : [(0,-1), (0, -1)],
             'front-left' : [(-1,2), (-1, 1)],
             'front-right' : [(1,2), (1, 1)],
+        }
+        
+    if direction == (0,-1):
+        sensors = {
+            'front' : [(0,-1), (0, -1)],
+            'left' : [(1,0), (1, 0)],
+            'right' : [(-1,0), (-1, 0)],
+            'back' : [(0,1), (0, 1)],
+            'front-left' : [(1,-2), (1, -1)],
+            'front-right' : [(-1,-2), (-1, -1)],
+        }
+    if direction == (-1,0):
+        sensors = {
+            'front' : [(-1,0), (-1, 0)],
+            'left' : [(0,-1), (0, -1)],
+            'right' : [(0,1), (0, 1)],
+            'back' : [(1,0), (1, 0)],
+            'front-left' : [(-2,-1), (-1, -1)],
+            'front-right' : [(-2,1), (-1, 1)],
+        }
+    if direction == (1,0):
+        sensors = {
+            'front' : [(1,0), (1, 0)],
+            'left' : [(0,1), (0, 1)],
+            'right' : [(0,-1), (0, -1)],
+            'back' : [(-1,0), (-1, 0)],
+            'front-left' : [(2,1), (1, 1)],
+            'front-right' : [(2,-1), (1, -1)],
         }
     
     return sensors
@@ -150,3 +179,25 @@ def findMatch(sensor_distances, sensor_data):
                     min_pos = (row, col)
                 
     return min_pos
+
+def addNoise(sensor_data, inches = 2):
+    
+    sensor_data = {a:b+inches*np.random.random() for a,b in sensor_data.items()}
+
+    return sensor_data
+
+def findDuplicates(sensor_matrix, max_noise = 2):
+
+    unfound = []
+    for col in range(sensor_matrix.shape[0]):
+        for row in range(sensor_matrix.shape[1]):
+            if sensor_matrix[col, row]:
+                predicted_block = findMatch(sensor_matrix, addNoise(sensor_matrix[col, row], max_noise))
+
+                if predicted_block != (col,row):
+                    unfound.append(predicted_block)
+                    print("Testing", [col, row], "Got", predicted_block)
+                    print("Expected", sensor_matrix[col, row], "\nGot", sensor_matrix[predicted_block])
+                    print("****************")
+
+    print('Mismatched %', 100 * len(unfound)/sensor_matrix.size)
