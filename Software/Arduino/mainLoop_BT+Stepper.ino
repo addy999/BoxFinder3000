@@ -1,4 +1,9 @@
 #include <string.h>
+#include <Servo.h>
+
+// Initate Servo
+Servo name_servo;
+int servo_pos = 0;
 
 // Defines Motor pins
 const int db = 13;
@@ -47,10 +52,14 @@ const int sensors[5][2] = {
     // {trigPin_6, echoPin_6},
 };
 
-const int LOOP_DELAY = 200; // ms
+const int LOOP_DELAY = 50; // ms
+float last_angle = -35; // deg
 
 void setup() 
-{
+{   
+    // Initialize servo
+    name_servo.attach(2);
+
     // Initialize Sensor pins
     pinMode(trigPin_1, OUTPUT); 
     pinMode(echoPin_1, INPUT); 
@@ -91,29 +100,44 @@ void loop()
 
         String bt_reading;
         bt_reading = Serial1.readStringUntil("\n");
-//        Serial.print(bt_reading); // Preview sent command
 
-        // Split command into 3 strings
+        // Split command into [m1, m2, m3, angle, sleep]
         int first_comma_idx = bt_reading.indexOf(",");
-        int last_comma_idx = bt_reading.lastIndexOf(",");
-        int hyphen_idx = bt_reading.lastIndexOf("-");
+        int fourth_comma_idx = bt_reading.lastIndexOf(",");
+        int second_comma_idx = bt_reading.substring(first_comma_idx+1, fourth_comma_idx).indexOf(",") + first_comma_idx+1;
+        int third_comma_idx = bt_reading.substring(first_comma_idx+1, fourth_comma_idx).lastIndexOf(",") + first_comma_idx+1;
+
         String m1_s = bt_reading.substring(0, first_comma_idx);
-        String m2_s = bt_reading.substring(first_comma_idx+1, last_comma_idx);
-        String m3_s = bt_reading.substring(last_comma_idx+1, hyphen_idx);
-        String sleep_s = bt_reading.substring(hyphen_idx+1, bt_reading.length()-1);
+        String m2_s = bt_reading.substring(first_comma_idx+1, second_comma_idx);
+        String m3_s = bt_reading.substring(second_comma_idx+1, third_comma_idx);
+        String angle_s = bt_reading.substring(third_comma_idx+1, fourth_comma_idx);
+        String sleep_s = bt_reading.substring(fourth_comma_idx+1, bt_reading.length()-1);
 
         // Convert commands into 3 floats
         float m1_f = m1_s.toFloat();
         float m2_f = m2_s.toFloat();
         float m3_f = m3_s.toFloat();
+        float angle_f = angle_s.toFloat(); 
         float sleep_f = sleep_s.toFloat(); 
         float motor_commands[3] = {m1_f, m2_f, m3_f};
+        
+        // Operate
+        if (angle_f==-1) {
+            angle_f = last_angle;
+        }
+        name_servo.write(angle_f);
+        last_angle = angle_f;
+
         moveMotors(motor_commands);
 
+        // Preview what's been sent
         Serial.print(m1_f);
+        Serial.print(" ");
         Serial.print(m2_f);
+        Serial.print(" ");
         Serial.print(m3_f);
-//        Serial.print(sleep_f);
+        Serial.print(" ");
+        Serial.print(angle_f);
         Serial.print("\n");
 
         delay(sleep_f);
@@ -145,9 +169,10 @@ void loop()
         Serial1.print("\n");
     }
     
+    // Brake after commands read and sensors sent back
     float commands[3] = {0.0, 0.0, 0.0};
     moveMotors(commands);
-    delay(50);
+    delay(LOOP_DELAY);
 }
 
 char distToChar(float* distances)
