@@ -3,5 +3,5 @@
     "board": "arduino:avr:mega",
     "configuration": "cpu=atmega2560",
     "port": "COM7",
-    "sketch": "Software\\Arduino\\ir.ino"
+    "sketch": "Software\\Arduino\\mainLoop_cont_BT+Stepper.ino"
 }
