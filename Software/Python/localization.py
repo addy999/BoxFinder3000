@@ -163,7 +163,8 @@ def findMatches(sensor_distances, sensor_data, threshold):
                 found.append((row, col))
     return found
 
-def findMatch(sensor_distances, sensor_data):
+def findMatch(sensor_distances, sensor_data, debug = False):
+    
     min_dist_found = 1e6
     min_pos = None
     for row in range(sensor_distances.shape[0]):
@@ -177,8 +178,10 @@ def findMatch(sensor_distances, sensor_data):
                 if diff < min_dist_found:
                     min_dist_found = diff
                     min_pos = (row, col)
-                
-    return min_pos
+    if debug:
+        return min_pos, min_dist_found
+    else:
+        return min_pos
 
 def addNoise(sensor_data, inches = 2):
     
@@ -186,18 +189,53 @@ def addNoise(sensor_data, inches = 2):
 
     return sensor_data
 
-def findDuplicates(sensor_matrix, max_noise = 2):
+def findDuplicates(sensor_matrix, max_noise = 2, allow_print=False):
 
-    unfound = []
+    dupicates = []
     for col in range(sensor_matrix.shape[0]):
         for row in range(sensor_matrix.shape[1]):
             if sensor_matrix[col, row]:
                 predicted_block = findMatch(sensor_matrix, addNoise(sensor_matrix[col, row], max_noise))
 
                 if predicted_block != (col,row):
-                    unfound.append(predicted_block)
-                    print("Testing", [col, row], "Got", predicted_block)
-                    print("Expected", sensor_matrix[col, row], "\nGot", sensor_matrix[predicted_block])
-                    print("****************")
+                    dupicates.append(predicted_block)
+                    dupicates.append((col,row))
+                    if allow_print:
+                        print("Testing", [col, row], "Got", predicted_block)
+                        print("Expected", sensor_matrix[col, row], "\nGot", sensor_matrix[predicted_block])
+                        print("****************")
 
-    print('Mismatched %', 100 * len(unfound)/sensor_matrix.size)
+    if allow_print: 
+        print('Mismatched %', 50 * len(dupicates)/sensor_matrix.size)
+
+    return dupicates
+
+def findSquare(direction, sensor_data, debug = False):
+    
+    result = findMatch(matrices[direction][0], sensor_data, debug)
+    duplicates = matrices[direction][1]
+    # print(result)
+    if debug:
+        predicted_block = result[0]
+    else:
+        predicted_block = result
+        
+    if predicted_block in duplicates:
+        # print("Got duplciate", predicted_block)
+        return None
+    
+    return result
+    
+################## Make sensor data ##################
+
+maze = createMaze()
+matrices = {
+    (0,1) : [],
+    (0,-1) : [],
+    (1,0) : [],
+    (-1,0) : []
+}
+
+for direction in matrices:
+    matrices[direction].append(createSensorMatrix(maze, getSensors(direction)))
+    matrices[direction].append(findDuplicates(matrices[direction][0], 6))

@@ -43,13 +43,13 @@ const int echoPin_5 = 31;
 const int trigPin_6 = 32;
 const int echoPin_6 = 33;
 
-const int sensors[5][2] = {
+const int sensors[6][2] = {
     {trigPin_1, echoPin_1},
     {trigPin_2, echoPin_2},
     {trigPin_3, echoPin_3},
     {trigPin_4, echoPin_4},
     {trigPin_5, echoPin_5},
-    // {trigPin_6, echoPin_6},
+    {trigPin_6, echoPin_6},
 };
 
 const int LOOP_DELAY = 50; // ms
@@ -71,6 +71,8 @@ void setup()
     pinMode(echoPin_4, INPUT); 
     pinMode(trigPin_5, OUTPUT); 
     pinMode(echoPin_5, INPUT); 
+    pinMode(trigPin_6, OUTPUT); 
+    pinMode(echoPin_6, INPUT); 
 
     // Initialize Motor pins
     pinMode(db, OUTPUT);
@@ -144,7 +146,7 @@ void loop()
 
         // Read sensors 
         float distances[6];
-        for(int i=0; i<5; i++)
+        for(int i=0; i<6; i++)
         {
             digitalWrite(sensors[i][0], LOW);
             delayMicroseconds(2);

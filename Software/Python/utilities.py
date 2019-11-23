@@ -18,7 +18,7 @@ def commandToStrBytes(command = list, to_add = ""):
 def sendRxCommand(ser, motor_command, sleep_req_ms=0.0, offset_s = 0.1):
     
     # Sending
-    str_command = commandToStrBytes(motor_command, '-' + str(sleep_req_ms))
+    str_command = commandToStrBytes(motor_command)
     # print('Sending', str_command)
     ser.write(str_command)
     
