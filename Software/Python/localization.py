@@ -163,7 +163,7 @@ def findMatches(sensor_distances, sensor_data, threshold):
                 found.append((row, col))
     return found
 
-def findMatch(sensor_distances, sensor_data, debug = False):
+def findMatchNorm(sensor_distances, sensor_data, debug = False):
     
     min_dist_found = 1e6
     min_pos = None
@@ -183,9 +183,30 @@ def findMatch(sensor_distances, sensor_data, debug = False):
     else:
         return min_pos
 
+def findMatch(sensor_distances, sensor_data, debug = False):
+    
+    min_diff_found = 1e6
+    min_pos = None
+    for row in range(sensor_distances.shape[0]):
+        for col in range(sensor_distances.shape[1]):
+            test_data = sensor_distances[row, col]
+            if test_data:
+                diff_vector = []
+                for sensor in test_data:
+                    diff_vector.append(abs(sensor_data[sensor] - test_data[sensor]))  
+                     
+                diff = max(diff_vector)    
+                if diff < min_diff_found:
+                    min_diff_found = diff
+                    min_pos = (row, col)
+    if debug:
+        return min_pos, min_diff_found
+    else:
+        return min_pos
+
 def addNoise(sensor_data, inches = 2):
     
-    sensor_data = {a:b+inches*np.random.random() for a,b in sensor_data.items()}
+    sensor_data = {a:b+inches for a,b in sensor_data.items()}
 
     return sensor_data
 
@@ -195,15 +216,15 @@ def findDuplicates(sensor_matrix, max_noise = 2, allow_print=False):
     for col in range(sensor_matrix.shape[0]):
         for row in range(sensor_matrix.shape[1]):
             if sensor_matrix[col, row]:
-                predicted_block = findMatch(sensor_matrix, addNoise(sensor_matrix[col, row], max_noise))
-
-                if predicted_block != (col,row):
-                    dupicates.append(predicted_block)
-                    dupicates.append((col,row))
-                    if allow_print:
-                        print("Testing", [col, row], "Got", predicted_block)
-                        print("Expected", sensor_matrix[col, row], "\nGot", sensor_matrix[predicted_block])
-                        print("****************")
+                for i in range(-1, 2, 2):
+                    predicted_block = findMatch(sensor_matrix, addNoise(sensor_matrix[col, row], i * max_noise))
+                    if predicted_block != (col,row):
+                        dupicates.append(predicted_block)
+                        dupicates.append((col,row))
+                        if allow_print:
+                            print("Testing", [col, row], "Got", predicted_block)
+                            print("Expected", sensor_matrix[col, row], "\nGot", sensor_matrix[predicted_block])
+                            print("****************")
 
     if allow_print: 
         print('Mismatched %', 50 * len(dupicates)/sensor_matrix.size)
@@ -238,4 +259,4 @@ matrices = {
 
 for direction in matrices:
     matrices[direction].append(createSensorMatrix(maze, getSensors(direction)))
-    matrices[direction].append(findDuplicates(matrices[direction][0], 6))
+    matrices[direction].append(findDuplicates(matrices[direction][0], 3))
