@@ -3,10 +3,12 @@ from motors import *
 # from mainLoop import *
 
 ser = startBT('COM6')
-sendRxCommand(ser, [0,0,0])
+sendRxCommand(ser, [0,0,0,0,0])
 
 while True:
     command = turnRight()    
+    command.append(0.0)
+    command.append(250)
     sendRxCommand(ser, command)
     
     # sendRxCommand(ser, [255,255,255])

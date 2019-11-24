@@ -15,14 +15,15 @@ def commandToStrBytes(command = list, to_add = ""):
     str_list += "\n"
     return bytes(str_list, 'utf-8')
 
-def sendRxCommand(ser, motor_command, sleep_req_ms=0.0, offset_s = 0.1):
+def sendRxCommand(ser, motor_command, offset_s = 0.1):
     
     # Sending
     str_command = commandToStrBytes(motor_command)
     # print('Sending', str_command)
     ser.write(str_command)
     
-    sleep(sleep_req_ms / 1000 + offset_s) # plus offset to allow comms to come in
+    sleep(motor_command[-1]/1000 + offset_s) 
+    # plus offset to allow comms to come in
     
     # Reading
     a = str(ser.readline())
