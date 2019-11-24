@@ -1,9 +1,9 @@
 #include <string.h>
 #include <Servo.h>
 
-// Initate Servo
-Servo name_servo;
-int servo_pos = 0;
+// // Initate Servo
+// Servo name_servo;
+// int servo_pos = 0;
 
 // Defines Motor pins
 const int db = 13;
@@ -58,7 +58,7 @@ float last_angle = -35; // deg
 void setup() 
 {   
     // Initialize servo
-    name_servo.attach(2);
+    // name_servo.attach(2);
 
     // Initialize Sensor pins
     pinMode(trigPin_1, OUTPUT); 
@@ -127,7 +127,7 @@ void loop()
         if (angle_f==-1) {
             angle_f = last_angle;
         }
-        name_servo.write(angle_f);
+        // name_servo.write(angle_f);
         last_angle = angle_f;
 
         moveMotors(motor_commands);
@@ -144,30 +144,36 @@ void loop()
 
         delay(sleep_f);
 
-        // Read sensors 
+        // Read Ultrasonic sensors 
         float distances[6];
         for(int i=0; i<6; i++)
         {
-            digitalWrite(sensors[i][0], LOW);
-            delayMicroseconds(2);
-            
-            // Sets the trigPin on HIGH state for 10 micro seconds
-            digitalWrite(sensors[i][0], HIGH);
-            delayMicroseconds(10);
-            digitalWrite(sensors[i][0], LOW);
-            
-            // Reads the echoPin, returns the sound wave travel time in microseconds
-            float duration = pulseIn(sensors[i][1], HIGH);
-            
-            // Calculating the distance
-            float distance = duration*0.034/2;
-    
-            // Convert dist to char and sent to BT
-            char char_dist[10];
-            dtostrf(distance, 6, 2, char_dist);
-            Serial1.print(char_dist);
-            Serial1.print("-");
+            for (int j=0; j<3; j++) 
+            {
+                digitalWrite(sensors[i][0], LOW);
+                delayMicroseconds(2);
+                // delay(100);
+                
+                // Sets the trigPin on HIGH state for 10 micro seconds
+                digitalWrite(sensors[i][0], HIGH);
+                delayMicroseconds(10);
+                digitalWrite(sensors[i][0], LOW);
+                
+                // Reads the echoPin, returns the sound wave travel time in microseconds
+                float duration = pulseIn(sensors[i][1], HIGH);
+                
+                // Calculating the distance
+                float distance = duration*0.034/2;
+        
+                // Convert dist to char and sent to BT
+                char char_dist[10];
+                dtostrf(distance, 6, 2, char_dist);
+                Serial1.print(char_dist);
+                Serial1.print("-");
+            }
         }
+
+        // End statement
         Serial1.print("\n");
     }
     
@@ -204,6 +210,7 @@ void moveMotors(float motor_commands[3])
         if (given_command == 0) 
         {
             digitalWrite(brake_pin, HIGH);
+            // analogWrite(speed_pin, 0);
             // delay(100);
             // digitalWrite(brake_pin, LOW);
         }
