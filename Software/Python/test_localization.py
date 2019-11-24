@@ -10,15 +10,15 @@ from scipy import stats
 ser = startBT('COM6')
 
 # Initialize
-direction = (0,1)
+# direction = (0,1)
 command = [0, 0, 0, 0, 0]
-sensor_readings = sendRxCommand(ser, command)
+sensor_readings = None
 print('Starting loop...')
 
 def cleanReadings(readings):
     
     # Find mode
-    readings = [readings[i*3:i*3+3] for i in range(8)]
+    readings = [readings[i*3:i*3+3] for i in range(6)]
     
     cleaned = []
     for reading in readings:
@@ -32,7 +32,7 @@ def cleanReadings(readings):
     
     # Add offsets in inches
     # f-l, f, f-r, l, r, b, ir-f-r, ir-f-l
-    offsets = [1.5,1.5,1.5,0.5,1.5,1, 0.0, 0.0] # when using max(reading)
+    offsets = [1.5,1.5,1.5,0.5,1.5,1] # when using max(reading)
     cleaned = [cleaned[i] + offsets[i] for i in range(len(offsets))]
     
     # Round
@@ -47,41 +47,31 @@ def cleanReadings(readings):
             'back' : cleaned[5],
         }     
     
+    # print("fr", reading_map["front-right"])
+    # print("fl", reading_map["front-left"])
     if  reading_map["front-right"] > 12:
         reading_map["front-right"] = 4
     if  reading_map["front-left"] > 12:
         reading_map["front-left"] = 4
     
-    # # Check if IR can be used
-    # if 0.0 < cleaned[6] and reading_map["front-right"] > 27:
-    #     print("Using FR IR, would've been", reading_map["front-right"], "now", cleaned[6])
-    #     reading_map["front-right"] = cleaned[6]
-    # # else:
-    # #     print("Using FR-US")
-        
-    # if 0.0 < cleaned[7]  and reading_map["front-left"] > 27:
-    #     print("Using FL IR, would've been", reading_map["front-left"], "now", cleaned[7])
-    #     reading_map["front-left"] = cleaned[7]
-    # else:
-    #     print("Using FL-US")
-    
     return reading_map
+
+readings = []
+c = 0
 
 while not keyboard.is_pressed('esc'):    
     
     if sensor_readings:        
         
         sensor_map = cleanReadings(sensor_readings)
-        print(sensor_map)
+        readings.append(sensor_map)
         
-        predict_block = findSquare(direction, sensor_map)
-        if predict_block:
-            print(predict_block)
-        else:
-            print("No match found amigo.")
+        if len(readings) >= 2:
+            print(readings[-2])
+            print(readings[-1])
+            predict_loc, predict_l1, predict_l2 = findSqDirectionMultiReadings(readings[-2], readings[-1])
+            print("Facing {0} from {1} to {2}.".format(predict_loc, predict_l1, predict_l2))
             
-        sensor_readings = sendRxCommand(ser, command)
-    
-    # sleep(0.250)
-        
-      
+    sleep(5)
+    print("Reading")
+    sensor_readings = sendRxCommand(ser, command)

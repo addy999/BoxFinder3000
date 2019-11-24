@@ -44,7 +44,7 @@ const int sensors[5][2] = {
     {trigPin_3, echoPin_3},
     {trigPin_4, echoPin_4},
     {trigPin_5, echoPin_5},
-    // {trigPin_6, echoPin_6},
+    {trigPin_6, echoPin_6},
 };
 
 const int LOOP_DELAY = 200; // ms
