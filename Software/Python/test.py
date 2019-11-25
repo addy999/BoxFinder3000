@@ -2,7 +2,6 @@ from utilities import *
 from motors import *
 # from mainLoop import *
 
-
 def sendRxCommand(ser, command, offset_s = 0.1):
             
         # Sending
@@ -27,8 +26,8 @@ def sendRxCommand(ser, command, offset_s = 0.1):
            
 ser = startBT('COM6')
 while True:
-    angle = float(input("Angle?"))
-    sendRxCommand(ser, [0,0,0,angle,0])
+    print(sendRxCommand(ser, [0,0,0,0,200]))
+    # sendRxCommand(ser, [10,10,10,5,200])
 
 # while True:
     

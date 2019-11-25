@@ -24,6 +24,8 @@ class Robot:
         self.init_localization_done = False
         self.location = None
         self.facing = None
+        self.sccop_open = False
+        self.last_turn = None
         self.brake()
         
         self.policy_loading_zone = {
@@ -118,9 +120,15 @@ class Robot:
         reading = self.sendRxCommand(full_command, delay) 
         stop_time = time.time()
         
-        # print(angle)
+        if angle == self.open_angle:
+            self.sccop_open = True
+        if angle == self.close_angle:
+            self.scoop_open = False
+            
+        if self.location:
+            print(self.location)
         
-        self.last_angle = angle
+        
         self.last_motor_commands = motor_command
         self.last_sleep = sleep     
         
@@ -152,35 +160,47 @@ class Robot:
     
     def findClosestSquare(self):
         
+        # print("Movings sq")
+        
         reading = self.brake()
+        
+        # print(reading.__dict__)
+        
         if reading.front > self.open_threshold:
+            # print("1")
             reading = self.moveSquare("up")
         elif reading.right > self.open_threshold:
+            # print("2")
             reading = self.moveSquare("right")
         elif reading.left > self.open_threshold:
+            # print("3")
             reading = self.moveSquare("left")
         elif reading.back > self.open_threshold:
+            # print("4")
             reading = self.moveSquare("down")
         
         return reading      
     
     def moveSquare(self, block, feet_to_move = 1):
         
-        self.center()
+        reading = self.center()
+        # reading = self.brake()
         
-        reading = self.brake()
         command, sleep = None, None
+        
+        # PRINT("mOVING", block)
         
         if block=="up" and reading.front > self.open_threshold:
             command, sleep = self.forwardCommand(9 * feet_to_move)
         elif block=="down" and reading.back > self.open_threshold:
-            command, sleep = self.reverseCommand(12*feet_to_move)
+            command, sleep = self.reverseCommand(12 * feet_to_move)
         elif block == "left" and reading.left > self.open_threshold:
-            command, sleep = self.slideLeftCommand(10*feet_to_move)
+            command, sleep = self.slideLeftCommand(5 * feet_to_move)
         elif block == "right" and reading.right > self.open_threshold:
-            command, sleep = self.slideRightCommand(9.5*feet_to_move)
+            command, sleep = self.slideRightCommand(5 * feet_to_move)
         # else:
-        #     reading = self.findClosestSquare()
+        #     # self.findNearestCorner()
+        #     reading = self.sensorLocalize()
         
         if command:
             reading = self.sendRead(command, sleep)
@@ -189,23 +209,23 @@ class Robot:
     
     def center(self):
         
-        # readings = self.brake()
-        readings = self.align()
+        readings = self.brake()
+        # readings = self.align()
 
         command = None
         
         if readings.left < readings.right and (readings.left < self.side_threshold):
             # print(readings.left, self.side_threshold)
-            command, sleep = self.slideRightCommand(0.3)
+            command, sleep = self.slideRightCommand(0.2)
         
         elif readings.right < readings.left and (readings.right < self.side_threshold):
-            command, sleep = self.slideLeftCommand(0.3)
+            command, sleep = self.slideLeftCommand(0.2)
             
-        elif readings.front < self.front_threshold and readings.back > self.front_threshold:
-            command, sleep = self.reverseCommand(0.5)
+        # elif readings.front < self.front_threshold and readings.back > self.front_threshold:
+        #     command, sleep = self.reverseCommand(0.3)
         
-        elif readings.back < self.front_threshold and readings.front > self.front_threshold:
-            command, sleep = self.forwardCommand(0.5)
+        # elif readings.back < self.front_threshold and readings.front > self.front_threshold:
+        #     command, sleep = self.forwardCommand(0.3)
         
         if command:
             self.printMsg("Centering")
@@ -221,11 +241,11 @@ class Robot:
         if self.facing != (0,1):
             
             if self.facing == (0,-1):
-                command, sleep = self.turn180(1.3)
+                command, sleep = self.turn180(1.1)
             elif self.facing == (-1,0):
-                command, sleep = self.turnRightCommand(1.3)
+                command, sleep = self.turnRightCommand(1.05)
             elif self.facing == (1,0):
-                command, sleep = self.turnLeftCommand(1.3)
+                command, sleep = self.turnLeftCommand(1.05)
             else:
                 self.sensorLocalize()
                 self.faceNorth()
@@ -239,7 +259,7 @@ class Robot:
     def followPolicy(self, policy, stopping_criterion):
         
         # self.printMsg("Localize?")
-        if not self.location:
+        if not self.location or self.location != (7,2):
             self.sensorLocalize()
         
         # self.printMsg("Face North?")
@@ -282,11 +302,31 @@ class Robot:
     def align(self):
         
         readings = self.brake()
+        command = None
+        needs_aligning = 12
+        turn_time = 0.0001
         
-        if readings.right - self.ir_right > self.align_threshold or readings.left - self.ir_left < self.align_threshold:
-            command, sleep = self.turnRightCommand(0.3)
-        elif readings.right - self.ir_right < self.align_threshold or readings.left - self.ir_left > self.align_threshold:
-            command, sleep = self.turnLeftCommand(0.3)
+        print(readings.left, self.ir_left, readings.right, self.ir_right)
+        
+        
+        if readings.right <= needs_aligning and self.ir_right <= needs_aligning:    
+            # if f-r closer than back-r
+            if -1.5 < readings.right - self.ir_right <= self.align_threshold:
+                print("1")
+                command, sleep = self.turnLeftCommand(turn_time)
+            # if back-r closer than f-r
+            elif -1.5 < self.ir_right - readings.right <= self.align_threshold:
+                print("2")
+                command, sleep = self.turnRightCommand(turn_time)
+        elif readings.left <= needs_aligning and self.ir_left <= needs_aligning:        
+            # if f-l closer than back-l
+            if -1.5 < readings.left - self.ir_left <= self.align_threshold:
+                print("3")
+                command, sleep = self.turnRightCommand(turn_time)
+            # if back-r closer than f-r
+            elif -1.5 < self.ir_left - readings.left <= self.align_threshold:
+                print("4")
+                command, sleep = self.turnLeftCommand(turn_time)
         
         if command:
             self.printMsg("Aligning")
@@ -345,6 +385,8 @@ class Robot:
         
         self.printMsg("Localized")
         # print(reading_1.__dict__, reading_2.__dict__)
+        
+        return reading_2
     
     def sendRxCommand(self, motor_command, offset_s = 0.1):
     
@@ -370,91 +412,126 @@ class Robot:
         else:
             return None
 
-    def scoop(self, angle):
-        self.printMsg("Scoop {} muthafucka".format(angle))
-        self.last_angle = angle
-        return self.sendRead([0,0,0], sleep=0, angle=angle)
+    def closeScoop(self):
+        self.printMsg("Close sccop")
+        return self.sendRead([0,0,0], sleep=0, angle=self.close_angle)
+    
+    def openScoop(self):
+        self.printMsg("Open sccop")
+        return self.sendRead([0,0,0], sleep=1000, angle=self.open_angle)   
     
     def goToLZ(self):
         
         self.followPolicy(
             self.policy_loading_zone,
-            lambda x: True if self.location in [(5,0), (7,2)] else False
+            lambda: True if self.location in [(5,0), (7,2)] else False
+        )
+        
+    def goToB(self):
+        
+        self.followPolicy(
+            self.b_policies[self.b_location],
+            lambda: True if self.location==self.b_location else False
         )
     
-    def pickUpBlock(self):
+    def keepForwardUntilBlock(self, threshold, step=1):
         
-        # # 1 - Rotate
-        # self.printMsg("Turn muthafucka")
-        # if self.location == (5,0):
-        #     command, sleep = self.turnRightCommand(1.1)
-        # elif self.location == (7,2):
-        #     command, sleep = self.turn180(1.3)
+        self.printMsg("Going fwd")
         
-        # self.sendRead(command, sleep)
+        can_go_forward = self.last_reading.front > threshold   
+        block = self.blockInFront(block_threshold = self.block_threshold)     
+        
+        while can_go_forward and not block: 
+            self.center()
+            can_go_forward = self.last_reading.front > threshold
+            command, sleep = self.forwardCommand(step)
+            self.sendRead(command, sleep)         
+            block = self.blockInFront(block_threshold = self.block_threshold) 
+            
+        return can_go_forward, block
+    
+    def changeDirection(self):
+        
+        # implied it can't go forward
+        can_turn_left = self.last_reading.left > 5 
+        can_turn_right = self.last_reading.right > 5
+        
+        if self.last_turn == "left":
+            turn = self.turnRightCommand
+            self.last_turn = "right"
+        elif self.last_turn == "right":
+            turn = self.turnLeftCommand
+            self.last_turn = "left"
+        elif not can_turn_left and can_turn_right:
+            turn = self.turnRightCommand
+            self.last_turn = "right"
+        else:
+            turn = self.turnLeftCommand
+            self.last_turn = "left"
+        
+        # Start process            
+        self.printMsg("Going " + self.last_turn)
+        
+        self.closeScoop()
+        
+        command, sleep = self.forwardCommand(1.8)
+        self.sendRead(command, sleep)
+        
+        command, sleep = turn(1.1)
+        self.sendRead(command, sleep)
+
+        block = False
+        if self.last_reading.front >= 7:
+            block = self.blockInFront(block_threshold = self.block_threshold)  
+        
+        if not block:
+            
+            # Turn around
+            ## Stride 
+            command = None
+            if self.last_turn == "left" and self.last_reading.right > 3:
+                command, sleep = self.slideRightCommand(0.8)
+            elif self.last_reading.left > 3:
+                command, sleep = self.slideLeftCommand(0.8)
+            if command:
+                self.sendRead(command, sleep)         
+                
+            command, sleep = self.forwardCommand(2.8)
+            self.sendRead(command, sleep)                
+            
+            command, sleep = turn(1.1)
+            self.sendRead(command, sleep)
+            
+            block = self.blockInFront(block_threshold = self.block_threshold)  
+        
+        return block
+        
+    def findPickupBlock(self):
+        
+        # 1 - Rotate
+        self.printMsg("Turn muthafucka")
+        if self.location == (5,0):
+            command, sleep = self.turnRightCommand(1)
+        elif self.location == (7,2):
+            command, sleep = self.turn180(1.1)
+        self.sendRead(command, sleep)
         
         # 2 - Open up shit
-        self.scoop(self.open_angle)
-        block = self.blockInFront(block_threshold = self.block_threshold)
-        fwd_done, left1_done, left2_done, right1_done, right2_done = [False] * 5
-        
+        self.openScoop()
+        block = False
+                
         # 3 - Find
         self.printMsg("Finding nemo")
-        while not block:
-            
-            self.center()
-            can_go_forward = self.last_reading.front > 8
-            can_turn_left = self.last_reading.left > 5 
-            can_turn_right = self.last_reading.right > 5
-            
-            if not can_turn_left and not can_go_forward:
-                self.scoop(self.close_angle)
-                
-                command, sleep = self.forwardCommand(1.2)
-                self.sendRead(command, sleep)
-                
-                command, sleep = self.turnRightCommand(1.3)
-                self.sendRead(command, sleep)
 
-                block = self.blockInFront(block_threshold = self.block_threshold)  
-                
-                if not block:
-                    # Turn around
-                    command, sleep = self.forwardCommand(0.5)
-                    self.sendRead(command, sleep)                
-                    
-                    command, sleep = self.turnRightCommand(1.3)
-                    self.sendRead(command, sleep)
-                
-                command, sleep = [0,0,0], 0.0
-                
-            elif not can_turn_right and not can_go_forward:
-                self.scoop(self.close_angle)
-                
-                command, sleep = self.forwardCommand(1.2)
-                self.sendRead(command, sleep)
-                
-                command, sleep = self.turnLeftCommand(1.3)
-                self.sendRead(command, sleep)
-                
-                block = self.blockInFront(block_threshold = self.block_threshold)  
-                
-                if not block:
-                    # Turn around
-                    command, sleep = self.forwardCommand(0.5)
-                    self.sendRead(command, sleep)                
-                    
-                    command, sleep = self.turnLeftCCommand(1.3)
-                    self.sendRead(command, sleep)
-                    
-                command, sleep = [0,0,0], 0.0
-                
-            elif can_go_forward:
-                command, sleep = self.forwardCommand(0.5)
-                            
-            # check ahead of u
-            self.sendRead(command, sleep, angle = self.open_angle)
-            block = self.blockInFront(block_threshold = self.block_threshold)                  
+        for i in range(3):
+            self.printMsg("Zamboni {}".format(i+1))
+            if not block:
+                self.printMsg("Forward until I can't")
+                can_go_forward, block = self.keepForwardUntilBlock(threshold = 9, step=1)
+            if not block:
+                # If can't go forward
+                self.printMsg("Change dir")
+                block = self.changeDirection()           
         
         # 4- Block found, pikckup    
         self.printMsg("Get ready you piece of shit")
@@ -464,33 +541,94 @@ class Robot:
         
         for i in range(tries):
             
-            self.scoop(self.open_angle)
+            self.openScoop()
             
             # Scoop and go forward
-            command, sleep = self.forwardCommand(1.0)
-            self.sendRead(command, sleep, angle = self.open_angle)
+            if self.last_reading.front > 5:
+                command, sleep = self.forwardCommand(0.9)
+                self.sendRead(command, sleep, angle = self.open_angle)
             
-            self.scoop(self.close_angle)
+            self.closeScoop()
             # self.sendRead(command, sleep, angle = self.close_angle)
             
             # Backup
-            command, sleep = self.reverseCommand(0.5)
-            self.sendRead(command, sleep)
+            if self.last_reading.back > 5:
+                command, sleep = self.reverseCommand(0.4)
+                self.sendRead(command, sleep)
                 
     def blockInFront(self, block_threshold):
-        self.scoop(self.open_angle)
+        self.openScoop()
         print(self.last_reading.front, self.block_reading )
         if self.last_reading.front - self.block_reading >= 3 and self.block_reading <= block_threshold:
             return True
         return False               
     
+    def findNearestCorner(self):
+        
+        ''' From 5,0 to 7,2 '''
+        
+        # Pick closest wall
+        if self.last_reading.front < self.last_reading.back:
+            can_go = lambda : self.last_reading.front >= 5
+            move = self.forwardCommand
+        else:
+            can_go = lambda : self.last_reading.back >= 5
+            move = self.reverseCommand
+        
+        self.center()
+        
+        while can_go():
+            command, sleep = move(0.3)
+            self.sendRead(command, sleep * 0.5)   
+    
+        # for i in range(3):
+        #     if can_go():
+        #         command, sleep = move(0.3)
+        #         self.sendRead(command, sleep * 0.5)   
+        #     else:
+        #         break
+
+        # Pick closest wall
+        if self.last_reading.left < self.last_reading.right:
+            can_go = lambda : self.last_reading.left >= 3
+            slide = self.turnRightCommand
+        else:
+            slide = self.turnLeftCommand
+            can_go = lambda : self.last_reading.right >= 3
+            
+        
+        # turn
+        command, sleep = slide(0.8)
+        self.sendRead(command, sleep * 0.5)   
+        
+        self.moveSquare("up", 2)
+        
+        self.location = (7,2)               
+    
+    def dropOff(self):
+        
+        if self.b_location != (0,3):
+            command, sleep = self.turn180(1.1)
+            self.sendRead(command, sleep)
+        
+        # drop off
+        command, sleep = self.reverseCommand(0.5)
+        self.sendRead(command, sleep)
+        
+        self.openScoop()
+
+        command, sleep = self.reverseCommand(0.5)
+        self.sendRead(command, sleep)
+        
+        self.printMsg("Dropped off!")    
+    
     ######## Commands ########
     
     def slideRightCommand(self, multiplier = 1):
         
-        self.motor_a_coeff = 1.0
-        self.motor_b_coeff = 0.72
-        self.motor_c_coeff = 0.9
+        self.motor_a_coeff = 1
+        self.motor_b_coeff = 0.95
+        self.motor_c_coeff = 1
         
         print('> Slide right')
         command = slideRight(self.motor_a_coeff, self.motor_b_coeff, self.motor_c_coeff, speed = self.slide_speed)
@@ -500,9 +638,9 @@ class Robot:
     
     def slideLeftCommand(self, multiplier = 1):
         
-        self.motor_a_coeff = 1.0
-        self.motor_b_coeff = 0.72
-        self.motor_c_coeff = 0.9
+        self.motor_a_coeff = 1
+        self.motor_b_coeff = 0.95
+        self.motor_c_coeff = 1 
         
         print('> slide left')
         command = slideLeft(self.motor_a_coeff, self.motor_b_coeff, self.motor_c_coeff, speed = self.slide_speed)
@@ -512,9 +650,9 @@ class Robot:
     
     def reverseCommand(self, multiplier = 1):
         
-        self.motor_a_coeff = 0.955
-        self.motor_b_coeff = 1.0
-        self.motor_c_coeff = 0.725        
+        self.motor_a_coeff = 1.0   
+        self.motor_b_coeff = 0.95
+        self.motor_c_coeff = 0.725       
         
         print('> Reverse')
         command = moveBwd(self.motor_a_coeff, self.motor_b_coeff, self.speed)
@@ -548,8 +686,8 @@ class Robot:
      
     def forwardCommand(self, multiplier = 1):
         
-        self.motor_a_coeff = 0.955
-        self.motor_b_coeff = 1.0
+        self.motor_a_coeff = 0.9   
+        self.motor_b_coeff = 0.95
         self.motor_c_coeff = 0.725        
         
         print('> Forward')
@@ -573,17 +711,26 @@ class Robot:
         
         cleaned = []
         for reading in readings:
-            reading = [int(i) for i in reading]
-            cleaned.append(max(reading))
-            # cleaned.append(sum(reading) / len(reading))
+            # if readings.index(reading) == 6:
+                reading = [int(i) for i in reading]
+                cleaned.append(max(reading))    
+            # else:
+            #     reading = [int(i) for i in reading]
+            #     cleaned.append(sum(reading) / len(reading))
+            
             # cleaned.append(int(stats.mode(reading)[0]))
+        
+        if cleaned[7] == 13 or cleaned[7] == 0:
+            cleaned[7] = cleaned[4]
+        if cleaned[8] == 13 or cleaned[8] == 0:
+            cleaned[8] = cleaned[3]
         
         # To inches
         cleaned = [i*0.393 for i in cleaned]
         
         # Add offsets in inches
         # f-l, f, f-r, l, r, b, block, ir, ir
-        offsets = [1.5,1.5,1.5,0.5,1.5, 0, 0, 0, 0] # when using max(reading)
+        offsets = [0,0.5,0,0.5,0.5, 0, 0, 1.5, 1] # when using max(reading)
         cleaned = [cleaned[i] + offsets[i] for i in range(len(offsets))]
         
         # Round
@@ -607,8 +754,8 @@ class Robot:
         
         # Save block reading
         self.block_reading = cleaned[6]
-        self.ir_left = cleaned[7]
-        self.ir_right = cleaned[8]
+        self.ir_right = cleaned[7]
+        self.ir_left= cleaned[8]
         
         return reading_map
     

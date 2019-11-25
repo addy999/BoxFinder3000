@@ -8,17 +8,21 @@ robot = Robot(
     debug = False,
     ser = ser,
     open_threshold = 12,
-    open_angle = 60.0,
+    open_angle = 50.0,
     close_angle = 5,
     block_threshold = 4.5,
+    align_threshold = -0.5,
+    b_location = (5,2),
     
     speed = 0.8,
     turn_speed = 0.96,
     straighten_speed = 45/120,
     slide_speed = 1,
     
-    front_threshold = 13 * 0.393,
+    front_threshold = 5,
+    # 16 * 0.393
     side_threshold = 4 * 0.393 ,
+    # side_threshold = 3.5,
     # diagonal_threshhold = 11,
     # diagonal_threshhold = 4 * 0.393 / cos(radians(45)) + 1.5* 0.393,
     
@@ -29,5 +33,13 @@ robot = Robot(
     forward_time_ms = 150, # ms
 )
 
-robot.location = (5,0)
-robot.pickUpBlock()
+robot.goToLZ()
+robot.findPickupBlock()
+robot.findNearestCorner()
+robot.goToB()
+robot.dropOff()
+
+# robot.sensorLocalize()
+
+# while True:
+#     robot.brake()
