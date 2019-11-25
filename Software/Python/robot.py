@@ -123,7 +123,18 @@ class Robot:
         self.last_sleep = sleep     
         
         if reading:
-            self.readings.append(self.cleanReadings(reading))  
+            self.readings.append(self.cleanReadings(reading))
+            
+            # if len(self.readings) > 2:
+            #     last_to_last_reading = self.readings[-2].values()
+            #     last_reading = self.readings[-1].values()
+            #     for r1, r2 in zip(last_reading, last_to_last_reading):
+            #         if self.debug:
+            #             print(">> Replacing reading")
+            #         if r1/r2 >= 2 or r2/r1 >= 2:
+            #             self.readings[-1] = last_to_last_reading
+            #             break
+             
             self.last_reading = Readings(**self.readings[-1])
             
             if self.debug:
@@ -141,31 +152,33 @@ class Robot:
         
         reading = self.brake()
         if reading.front > self.open_threshold:
-            command, sleep = self.forwardCommand(10)
+            reading = self.moveSquare("up")
         elif reading.right > self.open_threshold:
-            command, sleep = self.slideRightCommand(10)
+            reading = self.moveSquare("right")
         elif reading.left > self.open_threshold:
-            command, sleep = self.slideLeftCommand(10)
+            reading = self.moveSquare("left")
         elif reading.back > self.open_threshold:
-            command, sleep = self.reverseCommand(14)
+            reading = self.moveSquare("back")
         
-        return self.sendRead(command, sleep, 0.0)       
+        return reading      
     
-    def moveSquare(self, block):
+    def moveSquare(self, block, feet_to_move = 1):
+        
+        self.center()
         
         reading = self.brake()
         command, sleep = None, None
         
         if block=="up" and reading.front > self.open_threshold:
-            command, sleep = self.forwardCommand(10)
+            command, sleep = self.forwardCommand(9 * feet_to_move)
         elif block=="down" and reading.back > self.open_threshold:
-            command, sleep = self.reverseCommand(14)
+            command, sleep = self.reverseCommand(12*feet_to_move)
         elif block == "left" and reading.left > self.open_threshold:
-            command, sleep = self.slideLeftCommand(10)
+            command, sleep = self.slideLeftCommand(10*feet_to_move)
         elif block == "right" and reading.right > self.open_threshold:
-            command, sleep = self.slideRightCommand(10)
-        else:
-            reading = self.findClosestSquare()
+            command, sleep = self.slideRightCommand(10*feet_to_move)
+        # else:
+        #     reading = self.findClosestSquare()
         
         if command:
             reading = self.sendRead(command, sleep)
@@ -177,13 +190,20 @@ class Robot:
         readings = self.brake()
         command = None
         
-        if readings.left < readings.right and (readings.left < self.side_threshold or readings.front_left < self.diagonal_threshhold):
-            command, sleep = self.slideRightCommand(1.0)
+        if readings.left < readings.right and (readings.left < self.side_threshold):
+            print(readings.left, self.side_threshold)
+            command, sleep = self.slideRightCommand(0.3)
         
-        elif readings.right < readings.left and (readings.right < self.side_threshold or readings.front_right < self.diagonal_threshhold):
-            command, sleep = self.slideLeftCommand(1.0)
+        elif readings.right < readings.left and (readings.right < self.side_threshold):
+            command, sleep = self.slideLeftCommand(0.3)
+            
+        elif readings.front < self.front_threshold and readings.back > self.front_threshold:
+            command, sleep = self.reverseCommand(0.5)
         
-        if comand:
+        elif readings.back < self.front_threshold and readings.front > self.front_threshold:
+            command, sleep = self.forwardCommand(0.5)
+        
+        if command:
             self.printMsg("Centering")
             readings = self.sendRead(command, sleep)
         
@@ -192,33 +212,54 @@ class Robot:
     def faceNorth(self):
         
         command = None
+        self.center()
         
         if self.facing != (0,1):
             
             if self.facing == (0,-1):
-                command, sleep = turn180(1.0)
+                command, sleep = self.turn180(1.3)
             elif self.facing == (-1,0):
-                command, sleep = turnRight(1.0)
+                command, sleep = self.turnRightCommand(1.3)
             elif self.facing == (1,0):
-                command, sleep = turnLeft(1.0)
+                command, sleep = self.turnLeftCommand(1.3)
             else:
                 self.sensorLocalize()
+                self.faceNorth()
                 
         if command:
             self.printMsg("Facing North")
             self.sendRead(command, sleep)   
+        
+        # self.sensorLocalize()
     
     def followPolicy(self, policy, stopping_criterion):
         
+        self.printMsg("Localize?")
         if not self.location:
             self.sensorLocalize()
         
+        self.printMsg("Face North?")
         self.faceNorth()
         
+        self.printMsg("Start policy")
         while not stopping_criterion():
-            self.center()
             next_move = policy[self.location]
-            self.moveSquare(next_move)
+            self.printMsg("next " + str(next_move))
+            
+            self.moveSquare(next_move, feet_to_move=0.5)
+            self.moveSquare(next_move, feet_to_move=0.5)
+            self.changeLocation(next_move)
+            
+    def changeLocation(self, move):
+        
+        if move == "up":
+            self.location = (self.location[0], self.location[1]+1)
+        elif move == "down":
+            self.location = (self.location[0], self.location[1]-1)
+        elif move == "right":
+            self.location = (self.location[0]+1, self.location[1])
+        elif move == "left":
+            self.location = (self.location[0]-1, self.location[1])       
             
     def checkIfAligned(self):
         
@@ -267,6 +308,8 @@ class Robot:
     def sensorLocalize(self):
         
         self.printMsg("Localizing")
+        
+        self.center()
         
         # @ L1
         reading_1 = self.brake()
@@ -390,8 +433,8 @@ class Robot:
         cleaned = []
         for reading in readings:
             reading = [int(i) for i in reading]
-            # cleaned.append(max(reading))
-            cleaned.append(sum(reading) / len(reading))
+            cleaned.append(max(reading))
+            # cleaned.append(sum(reading) / len(reading))
             # cleaned.append(int(stats.mode(reading)[0]))
         
         # To inches
