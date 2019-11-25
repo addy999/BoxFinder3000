@@ -14,8 +14,8 @@ robot = Robot(
     straighten_speed = 45/120,
     slide_speed = 1,
     
-    front_threshold = 12 * 0.393,
-    side_threshold = 4 * 0.393,
+    front_threshold = 14 * 0.393,
+    side_threshold = 4 * 0.393 ,
     # diagonal_threshhold = 11,
     diagonal_threshhold = 4 * 0.393 / cos(radians(45)) + 1.5* 0.393,
     turn_threshold = 15* 0.393,
@@ -28,6 +28,7 @@ robot = Robot(
     forward_time_ms = 150, # ms
 )
 
+def true():
+    return False
 
-robot.center()
-# robot.faceNorth()
+robot.followPolicy(robot.policy_loading_zone, true)
