@@ -189,7 +189,9 @@ class Robot:
     
     def center(self):
         
-        readings = self.brake()
+        # readings = self.brake()
+        readings = self.align()
+
         command = None
         
         if readings.left < readings.right and (readings.left < self.side_threshold):
@@ -277,7 +279,22 @@ class Robot:
         
         return aligned       
     
-    def align(self, timeout = 10):
+    def align(self):
+        
+        readings = self.brake()
+        
+        if readings.right - self.ir_right > self.align_threshold or readings.left - self.ir_left < self.align_threshold:
+            command, sleep = self.turnRightCommand(0.3)
+        elif readings.right - self.ir_right < self.align_threshold or readings.left - self.ir_left > self.align_threshold:
+            command, sleep = self.turnLeftCommand(0.3)
+        
+        if command:
+            self.printMsg("Aligning")
+            return self.sendRead(command, sleep)
+        else:
+            return readings
+    
+    def _align(self, timeout = 10):
         
         self.printMsg("Aligning")
         
@@ -552,7 +569,7 @@ class Robot:
     def cleanReadings(self, readings):
         
         # Find mode
-        readings = [readings[i*3:i*3+3] for i in range(7)]
+        readings = [readings[i*3:i*3+3] for i in range(9)]
         
         cleaned = []
         for reading in readings:
@@ -565,8 +582,8 @@ class Robot:
         cleaned = [i*0.393 for i in cleaned]
         
         # Add offsets in inches
-        # f-l, f, f-r, l, r, b, block
-        offsets = [1.5,1.5,1.5,0.5,1.5, 0, 0] # when using max(reading)
+        # f-l, f, f-r, l, r, b, block, ir, ir
+        offsets = [1.5,1.5,1.5,0.5,1.5, 0, 0, 0, 0] # when using max(reading)
         cleaned = [cleaned[i] + offsets[i] for i in range(len(offsets))]
         
         # Round
@@ -589,6 +606,9 @@ class Robot:
             reading_map["front_left"] = 4
         
         # Save block reading
-        self.block_reading = cleaned[-1]
+        self.block_reading = cleaned[6]
+        self.ir_left = cleaned[7]
+        self.ir_right = cleaned[8]
+        
         return reading_map
     
