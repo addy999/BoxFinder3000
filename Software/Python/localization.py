@@ -15,8 +15,8 @@ def getSensors(direction = (0,1)):
             'left' : [(-1,0), (-1, 0)],
             'right' : [(1,0), (1, 0)],
             'back' : [(0,-1), (0, -1)],
-            'front-left' : [(-1,2), (-1, 1)],
-            'front-right' : [(1,2), (1, 1)],
+            'front_left' : [(-1,2), (-1, 1)],
+            'front_right' : [(1,2), (1, 1)],
         }
         
     if direction == (0,-1):
@@ -25,8 +25,8 @@ def getSensors(direction = (0,1)):
             'left' : [(1,0), (1, 0)],
             'right' : [(-1,0), (-1, 0)],
             'back' : [(0,1), (0, 1)],
-            'front-left' : [(1,-2), (1, -1)],
-            'front-right' : [(-1,-2), (-1, -1)],
+            'front_left' : [(1,-2), (1, -1)],
+            'front_right' : [(-1,-2), (-1, -1)],
         }
     if direction == (-1,0):
         sensors = {
@@ -34,8 +34,8 @@ def getSensors(direction = (0,1)):
             'left' : [(0,-1), (0, -1)],
             'right' : [(0,1), (0, 1)],
             'back' : [(1,0), (1, 0)],
-            'front-left' : [(-2,-1), (-1, -1)],
-            'front-right' : [(-2,1), (-1, 1)],
+            'front_left' : [(-2,-1), (-1, -1)],
+            'front_right' : [(-2,1), (-1, 1)],
         }
     if direction == (1,0):
         sensors = {
@@ -43,8 +43,8 @@ def getSensors(direction = (0,1)):
             'left' : [(0,1), (0, 1)],
             'right' : [(0,-1), (0, -1)],
             'back' : [(-1,0), (-1, 0)],
-            'front-left' : [(2,1), (1, 1)],
-            'front-right' : [(2,-1), (1, -1)],
+            'front_left' : [(2,1), (1, 1)],
+            'front_right' : [(2,-1), (1, -1)],
         }
     
     return sensors

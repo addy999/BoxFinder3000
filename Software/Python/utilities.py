@@ -15,28 +15,6 @@ def commandToStrBytes(command = list, to_add = ""):
     str_list += "\n"
     return bytes(str_list, 'utf-8')
 
-def sendRxCommand(ser, motor_command, offset_s = 0.1):
-    
-    # Sending
-    str_command = commandToStrBytes(motor_command)
-    # print('Sending', str_command)
-    ser.write(str_command)
-    
-    sleep(motor_command[-1]/1000 + offset_s) 
-    # plus offset to allow comms to come in
-    
-    # Reading
-    a = str(ser.readline())
-    if len(a) > 20:
-        a = a[2:-2]
-        a = a.replace("\\","")
-        a = a.replace("\n", "")
-        a = a.replace("  ", "")[:-1]
-        a = [float(c) for c in a.split("-")]
-        return a
-    else:
-        return None
-
 def allowReadingsDiff(current, last, multiple = 2):
     
     i =0 
